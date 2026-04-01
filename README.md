@@ -2,7 +2,7 @@
 
 Predicting parvalbumin (Pvalb) expression from neuronal morphology using deep learning.
 
- 
+External Validation Tool: https://ngep-validator-frontend.pages.dev/
 
 ## Overview
 
