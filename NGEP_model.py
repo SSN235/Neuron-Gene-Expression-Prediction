@@ -51,12 +51,42 @@ if removed_rows > 0:
     print(f"Removed {removed_rows} rows with missing values")
 
 #extracts X (features) and y (target) as numpy arrays
-X = data[feature_cols].values
+# NEW - Feature Engineering
+X_base = data[feature_cols].values
+
+X = np.column_stack([
+    X_base,
+    
+    # ===== RATIOS (capture morphological relationships) =====
+    X_base[:, 1] / (X_base[:, 0] + 1e-6),      # dendritic/soma: neurons with long dendrites relative to soma size may express differently
+    X_base[:, 2] / (X_base[:, 3] + 1e-6),      # bifurcations/terminals: branching efficiency (more branches per endpoint = different structure)
+    X_base[:, 3] / (X_base[:, 1] + 1e-6),      # terminals/dendritic: terminal density (how densely packed are endpoints along the dendrite)
+    
+    # ===== PRODUCTS (capture complexity and interactions) =====
+    X_base[:, 0] * X_base[:, 1],               # soma*dendritic: overall neuron size (scale factor combining two dimensions)
+    X_base[:, 2] * X_base[:, 3],               # bifurcations*terminals: branching complexity (highly branched neurons with many endpoints are fundamentally different)
+    
+    # ===== LOG TRANSFORMS (normalize skewed distributions) =====
+    np.log(X_base[:, 2] + 1),                  # log bifurcations: bifurcation counts are usually right-skewed (few neurons have extremely high counts); log makes distribution normal
+    np.log(X_base[:, 3] + 1),                  # log terminals: same as bifurcations; log helps model learn exponential relationships better
+    
+    # ===== SQUARES (capture nonlinear effects) =====
+    X_base[:, 0] ** 2,                         # soma²: surface area and volume scale nonlinearly with radius; squared term lets model learn this without explicit formula
+    X_base[:, 1] ** 2,                         # dendritic²: same reasoning; nonlinear growth effects that impact expression
+])
+
+
+feature_cols = ['soma_radius', 'total_dendritic_length', 'bifurcations', 'terminals', 
+                'branch_density', 'ratio_dend_soma', 'product_soma_dend', 'ratio_bifur_term',
+                'ratio_term_dend', 'log_bifurcations', 'log_terminals', 'soma_radius_sq', 
+                'dend_length_sq', 'product_bifur_term']
+
 y = data[target_col].values
 
 #reads through the data and creates numpy arrays with dataset dimensions
+#reads through the data and creates numpy arrays with dataset dimensions
 num_observations = X.shape[0]
-num_features = X.shape[1]
+num_features = X.shape[1]  # Now 14 instead of 5
 
 print(f"Number of Observations = {num_observations}")
 print(f"Number of Features = {num_features}")
@@ -104,7 +134,11 @@ class NeuralNetwork(nn.Module):
         x = self.fc3(x)
         
         return x
-
+# NEW (increase hidden layers since you have more features)
+num_features = X.shape[1]  # Now 14 instead of 5
+HIDDEN_1 = 128
+HIDDEN_2 = 64
+print("Model architecture: {} -> {} -> {} -> 1".format(num_features, HIDDEN_1, HIDDEN_2))
 
 print("Model architecture: {} -> {} -> {} -> 1".format(num_features, HIDDEN_1, HIDDEN_2))
 
@@ -177,14 +211,14 @@ for fold, (train_idx, test_idx) in enumerate(skf.split(X, region_labels)):
     model = model.to(device)
     
     #sets the loss function and optimizer
-    criterion = nn.MSELoss()
+    criterion = nn.SmoothL1Loss() #changed 
     #criterion = nn.SmoothL1Loss()
     optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
     #adds a scheduler ----- added 3/31
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
     optimizer,
-    mode='min',      # because you're minimizing validation loss
+    mode='min',      # to minimize validation loss
     factor=0.5,      # reduce LR by half
     patience=10,     # wait 10 epochs before reducing
     )
@@ -280,7 +314,6 @@ for fold, (train_idx, test_idx) in enumerate(skf.split(X, region_labels)):
     #saves model checkpoint
     os.makedirs("models", exist_ok=True)
     torch.save(model.state_dict(), f"models/fold_{fold}_best.pt")
-
 
 # ===== CROSS-VALIDATION SUMMARY =====
 print("\n" + "="*60)
