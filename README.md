@@ -51,15 +51,14 @@ Five features extracted from each neuron's 3D reconstruction:
 5. Branch density - Bifurcations / dendritic length
 
 These features capture the compact, highly branched morphology characteristic of parvalbumin-positive fast-spiking interneurons.
- 
 
 ## Model Architecture
 
 Neural network design:
 
   Input (5 features)
-    -> Linear(128) -> BatchNorm -> ReLU -> Dropout(0.1)
-    -> Linear(64) -> BatchNorm -> ReLU -> Dropout(0.1)
+    -> Linear(128) -> ReLU -> Dropout(0.1)
+    -> Linear(64) -> ReLU -> Dropout(0.1)
     -> Linear(1) [regression output]
 
 Training Configuration:
@@ -69,8 +68,6 @@ Training Configuration:
   - Epochs: 150
   - Cross-validation: Stratified 10-fold
   - Random seed: 42
-
- 
 
 ## Results
 
@@ -94,7 +91,6 @@ The model explains approximately 31% of variance in Pvalb expression from five m
 
 Remarkably consistent performance across folds with R² standard deviation of only 0.0214, indicating robust generalization.
 
-
 ### Applications
 
 - Drug screening: Morphology-based Pvalb expression prediction from iPSCs
@@ -106,46 +102,44 @@ Remarkably consistent performance across folds with R² standard deviation of on
 
 ## NGEP Validator: External Validation Tool
 
-The validator is a web-based tool for testing the ensemble model on external validation data from NeuroMorpho.org.
+The validator is a web-based tool for testing the consolidated cross-fold model on external validation data from NeuroMorpho.org.
+
+### Architecture
+
+- **Frontend**: Static HTML hosted on Cloudflare Pages
+- **Backend**: Flask + gunicorn hosted on Render, serving a single consolidated `.pkl` model
 
 ### How It Works
 
 1. Fetches fresh neurons from NeuroMorpho.org (not from training set)
 2. Extracts the same 5 morphological features
-3. Applies StandardScaler normalization (fitted during training)
-4. Passes features through all 10 trained models
-5. Averages predictions across models (ensemble voting)
-6. Computes performance metrics (R², Pearson r, RMSE, MAE)
+3. Applies StandardScaler normalization
+4. Passes features through the consolidated model
+5. Computes performance metrics (R², Pearson r, RMSE, MAE)
+6. Falls back to synthetic neuron data if NeuroMorpho.org is unavailable
 
 ### Avoiding Training Data Contamination
 
 - Large population: NeuroMorpho.org has 300,000+ neurons (training set is <0.05%)
 - Random ordering: Neurons fetched in random order
 - Statistical expectation: Probability of refetching same neuron is ~0.05% per validation neuron
-- Transparent reporting: Validator logs any overlapping neurons
 
 Expected contamination rate: <0.05% (negligible)
 
-### Preprocessing Consistency
-
-- Scaler: Identical StandardScaler parameters from training
-- Feature extraction: Identical code as NGEP_feature_extraction.py
-- SWC parsing: Identical parsing logic
-- Region matching: Not performed for validation (only morphology used)
-
 ### API Endpoints
 
+Health check:
+  GET /
+
+List models:
+  GET /api/models
+
 Fetch neurons:
-  POST /api/fetch-neurons
-  Parameters: count, species, brain_region, randomize
+  GET /api/neurons?species=mouse&brain_region=neocortex&count=10
 
-Get predictions:
-  POST /api/predict
-  Parameters: features, model_version
-
-Compute metrics:
-  POST /api/evaluate
-  Parameters: actual, predicted
+Run inference:
+  POST /api/infer
+  Body: { model, neuronCount, genes, species, brain_region, randomSeed }
 
 ## Limitations
 
@@ -154,7 +148,6 @@ Compute metrics:
 - Cross-sectional: Developmental dynamics not captured
 - Correlation, not causation: Morphology may be consequence not driver of expression
 - Mouse neocortex only: Applicability to human cortex or other regions unclear
-
 
 ## Future Directions
 
@@ -180,16 +173,19 @@ Long-term:
 
 Random Seed: All random generation seeded with RANDOM_STATE = 42
 
-Dependencies (pin for exact reproducibility):
-  torch==2.0.1
+Dependencies:
+  torch==2.6.0
   pandas==2.0.3
-  numpy==1.24.3
+  numpy==1.26.0
   scikit-learn==1.3.0
   scipy==1.11.1
   matplotlib==3.7.1
   seaborn==0.12.2
   requests==2.31.0
   beautifulsoup4==4.12.2
+  flask==2.3.3
+  flask-cors==4.0.0
+  gunicorn==21.2.0
 
 Hardware Effects: GPU (CUDA/MPS) may introduce minor floating-point differences. CPU execution is slower but fully reproducible.
 
@@ -197,8 +193,6 @@ Hardware Effects: GPU (CUDA/MPS) may introduce minor floating-point differences.
 
 - NeuroMorpho.org for open-access neuron reconstructions
 - Allen Brain Institute for comprehensive in situ hybridization data
-
- 
 
 Status: Stable, reproducible results across stratified 10-fold CV
 Recommended for: Research, proof-of-concept, clinical biomarker development
