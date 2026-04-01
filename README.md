@@ -6,7 +6,7 @@ External Validation Tool: https://ngep-validator-frontend.pages.dev/
 
 ## Overview
 
-NGEP is a computational framework for predicting cell-type-specific gene expression from neuronal 3D morphology. Using real open-access data from NeuroMorpho.org and the Allen Brain Atlas, we train a feedforward neural network to infer parvalbumin mRNA levels in mouse neocortex from five morphological features.
+NGEP is a computational framework for predicting cell-type-specific gene expression from neuronal 3D morphology. Using real open-access data from NeuroMorpho.org and the Allen Brain Atlas, we train a feedforward neural network to infer parvalbumin mRNA levels in mouse neocortex from neuronal morphological features.
  
 ## Clinical Significance
 
@@ -42,7 +42,7 @@ Each neuron's brain region metadata is matched to Allen structures to assign reg
 
 ## Morphological Features
 
-Five features extracted from each neuron's 3D reconstruction:
+Five base features extracted from each neuron's 3D reconstruction:
 
 1. Soma radius - Cell body size
 2. Total dendritic length - Cumulative dendrite extent
@@ -50,20 +50,26 @@ Five features extracted from each neuron's 3D reconstruction:
 4. Terminal count - Number of synaptic endpoints
 5. Branch density - Bifurcations / dendritic length
 
-These features capture the compact, highly branched morphology characteristic of parvalbumin-positive fast-spiking interneurons.
+These features are then engineered into 14 total features through:
+- **Ratios:** dendritic_length/soma_radius, bifurcations/terminals, terminals/dendritic_length
+- **Products:** soma_radius×dendritic_length, bifurcations×terminals
+- **Log transforms:** log(bifurcations + 1), log(terminals + 1)
+- **Squares:** soma_radius², dendritic_length²
+
+Feature engineering captures nonlinear relationships and interactions between morphological properties.
 
 ## Model Architecture
 
 Neural network design:
 
-  Input (5 features)
+  Input (14 engineered features)
     -> Linear(128) -> ReLU -> Dropout(0.1)
     -> Linear(64) -> ReLU -> Dropout(0.1)
     -> Linear(1) [regression output]
 
 Training Configuration:
   - Optimizer: Adam (lr=0.001)
-  - Loss: Mean Squared Error
+  - Loss: SmoothL1Loss (β=1.0, robust to outliers)
   - Batch size: 8
   - Epochs: 150
   - Cross-validation: Stratified 10-fold
@@ -79,7 +85,7 @@ Training Configuration:
 - **MAE**: Mean 0.5608 (Std 0.0071) | Range 0.5517 - 0.5777
 - **p-value**: All < 10^-40 across all 10 folds
 
-The model explains approximately 31% of variance in Pvalb expression from five morphological measurements. Remaining variance is attributable to gene regulatory networks, epigenetic state, developmental history, and local circuit context.
+The model explains approximately 31% of variance in Pvalb expression from morphological measurements. Remaining variance is attributable to gene regulatory networks, epigenetic state, developmental history, and local circuit context.
 
 ### Top 5 Performing Folds
 
@@ -112,7 +118,7 @@ The validator is a web-based tool for testing the consolidated cross-fold model 
 ### How It Works
 
 1. Fetches fresh neurons from NeuroMorpho.org (not from training set)
-2. Extracts the same 5 morphological features
+2. Extracts the same 14 engineered morphological features
 3. Applies StandardScaler normalization
 4. Passes features through the consolidated model
 5. Computes performance metrics (R², Pearson r, RMSE, MAE)
@@ -143,7 +149,7 @@ Run inference:
 
 ## Limitations
 
-- Sparse features (5 features): Spine density, axonal morphology not included
+- Sparse features (14 engineered from 5 base features): Spine density, axonal morphology not included
 - Single gene, single cell type: Generalization to other genes/populations unknown
 - Cross-sectional: Developmental dynamics not captured
 - Correlation, not causation: Morphology may be consequence not driver of expression
@@ -188,6 +194,9 @@ Dependencies:
   gunicorn==21.2.0
 
 Hardware Effects: GPU (CUDA/MPS) may introduce minor floating-point differences. CPU execution is slower but fully reproducible.
+
+Status: Stable, reproducible results across stratified 10-fold CV
+Recommended for: Research, proof-of-concept, clinical biomarker development
 
 ## Acknowledgments
 
