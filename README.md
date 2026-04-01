@@ -57,18 +57,18 @@ These features capture the compact, highly branched morphology characteristic of
 
 Neural network design:
 
-Input (5 features)
-  -> Linear(128) -> BatchNorm -> ReLU -> Dropout(0.1)
-  -> Linear(64) -> BatchNorm -> ReLU -> Dropout(0.1)
-  -> Linear(1) [regression output]
+  Input (5 features)
+    -> Linear(128) -> BatchNorm -> ReLU -> Dropout(0.1)
+    -> Linear(64) -> BatchNorm -> ReLU -> Dropout(0.1)
+    -> Linear(1) [regression output]
 
 Training Configuration:
-- Optimizer: Adam (lr=0.001)
-- Loss: Mean Squared Error
-- Batch size: 8
-- Epochs: 150
-- Cross-validation: Stratified 10-fold
-- Random seed: 42
+  - Optimizer: Adam (lr=0.001)
+  - Loss: Mean Squared Error
+  - Batch size: 8
+  - Epochs: 150
+  - Cross-validation: Stratified 10-fold
+  - Random seed: 42
 
  
 
@@ -76,25 +76,25 @@ Training Configuration:
 
 ### Cross-Validation Performance
 
-| Metric | Mean | Std | Range |
-|  --|  | --|  -|
-| R² | 0.3266 | 0.0214 | 0.2876 - 0.3560 |
-| Pearson R | 0.5790 | 0.0189 | 0.5389 - 0.6063 |
-| RMSE | 0.7064 | 0.0124 | 0.6910 - 0.7290 |
-| MAE | 0.5608 | 0.0071 | 0.5517 - 0.5777 |
-| p-value | all < 10^-40 | - | 10/10 folds |
+Metric           Mean      Std       Range
+─────────────────────────────────────────────────────
+R²               0.3266    0.0214    0.2876 - 0.3560
+Pearson R        0.5790    0.0189    0.5389 - 0.6063
+RMSE             0.7064    0.0124    0.6910 - 0.7290
+MAE              0.5608    0.0071    0.5517 - 0.5777
+p-value          all < 10^-40         10/10 folds
 
 The model explains approximately 31% of variance in Pvalb expression from five morphological measurements. Remaining variance is attributable to gene regulatory networks, epigenetic state, developmental history, and local circuit context.
 
 ### Top 5 Performing Folds
 
-| Fold | R² | Pearson R | RMSE | p-value |
-|  | --|   --|  |   |
-| Fold 5 | 0.3560 | 0.6052 | 0.6910 | 6.11e-57 |
-| Fold 6 | 0.3511 | 0.6063 | 0.6902 | 3.36e-57 |
-| Fold 10 | 0.3470 | 0.5928 | 0.6971 | 4.61e-54 |
-| Fold 7 | 0.3357 | 0.5812 | 0.6934 | 1.26e-51 |
-| Fold 4 | 0.3304 | 0.5806 | 0.7100 | 1.61e-51 |
+Fold    R²        Pearson R    RMSE      p-value
+──────────────────────────────────────────────────
+Fold 5  0.3560    0.6052       0.6910    6.11e-57
+Fold 6  0.3511    0.6063       0.6902    3.36e-57
+Fold 10 0.3470    0.5928       0.6971    4.61e-54
+Fold 7  0.3357    0.5812       0.6934    1.26e-51
+Fold 4  0.3304    0.5806       0.7100    1.61e-51
 
 Remarkably consistent performance across folds with R² standard deviation of only 0.0214, indicating robust generalization.
 
@@ -140,16 +140,16 @@ Expected contamination rate: <0.05% (negligible)
 ### API Endpoints
 
 Fetch neurons:
-POST /api/fetch-neurons
-Parameters: count, species, brain_region, randomize
+  POST /api/fetch-neurons
+  Parameters: count, species, brain_region, randomize
 
 Get predictions:
-POST /api/predict
-Parameters: features, model_version
+  POST /api/predict
+  Parameters: features, model_version
 
 Compute metrics:
-POST /api/evaluate
-Parameters: actual, predicted
+  POST /api/evaluate
+  Parameters: actual, predicted
 
 ## Limitations
 
@@ -163,37 +163,37 @@ Parameters: actual, predicted
 ## Future Directions
 
 Short-term:
-- Permutation feature importance
-- Expanded feature engineering (axonal properties, spine density)
-- Multi-gene prediction
+  - Permutation feature importance
+  - Expanded feature engineering (axonal properties, spine density)
+  - Multi-gene prediction
 
 Medium-term:
-- Graph neural networks for full morphology
-- Multi-cell-type comparison
-- Regional stratification
-- Electrophysiological integration
+  - Graph neural networks for full morphology
+  - Multi-cell-type comparison
+  - Regional stratification
+  - Electrophysiological integration
 
 Long-term:
-- Single-cell RNA-seq validation
-- Developmental longitudinal data
-- In vivo validation
-- Human iPSC extension
-- Multi-omics integration
+  - Single-cell RNA-seq validation
+  - Developmental longitudinal data
+  - In vivo validation
+  - Human iPSC extension
+  - Multi-omics integration
 
 ## Reproducibility
 
 Random Seed: All random generation seeded with RANDOM_STATE = 42
 
 Dependencies (pin for exact reproducibility):
-torch==2.0.1
-pandas==2.0.3
-numpy==1.24.3
-scikit-learn==1.3.0
-scipy==1.11.1
-matplotlib==3.7.1
-seaborn==0.12.2
-requests==2.31.0
-beautifulsoup4==4.12.2
+  torch==2.0.1
+  pandas==2.0.3
+  numpy==1.24.3
+  scikit-learn==1.3.0
+  scipy==1.11.1
+  matplotlib==3.7.1
+  seaborn==0.12.2
+  requests==2.31.0
+  beautifulsoup4==4.12.2
 
 Hardware Effects: GPU (CUDA/MPS) may introduce minor floating-point differences. CPU execution is slower but fully reproducible.
 
