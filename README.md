@@ -76,25 +76,21 @@ Training Configuration:
 
 ### Cross-Validation Performance
 
-Metric           Mean      Std       Range
-─────────────────────────────────────────────────────
-R²               0.3266    0.0214    0.2876 - 0.3560
-Pearson R        0.5790    0.0189    0.5389 - 0.6063
-RMSE             0.7064    0.0124    0.6910 - 0.7290
-MAE              0.5608    0.0071    0.5517 - 0.5777
-p-value          all < 10^-40         10/10 folds
+- **R²**: Mean 0.3266 (Std 0.0214) | Range 0.2876 - 0.3560
+- **Pearson R**: Mean 0.5790 (Std 0.0189) | Range 0.5389 - 0.6063
+- **RMSE**: Mean 0.7064 (Std 0.0124) | Range 0.6910 - 0.7290
+- **MAE**: Mean 0.5608 (Std 0.0071) | Range 0.5517 - 0.5777
+- **p-value**: All < 10^-40 across all 10 folds
 
 The model explains approximately 31% of variance in Pvalb expression from five morphological measurements. Remaining variance is attributable to gene regulatory networks, epigenetic state, developmental history, and local circuit context.
 
 ### Top 5 Performing Folds
 
-Fold    R²        Pearson R    RMSE      p-value
-──────────────────────────────────────────────────
-Fold 5  0.3560    0.6052       0.6910    6.11e-57
-Fold 6  0.3511    0.6063       0.6902    3.36e-57
-Fold 10 0.3470    0.5928       0.6971    4.61e-54
-Fold 7  0.3357    0.5812       0.6934    1.26e-51
-Fold 4  0.3304    0.5806       0.7100    1.61e-51
+- **Fold 5**: R² 0.3560 | Pearson R 0.6052 | RMSE 0.6910 | p-value 6.11e-57
+- **Fold 6**: R² 0.3511 | Pearson R 0.6063 | RMSE 0.6902 | p-value 3.36e-57
+- **Fold 10**: R² 0.3470 | Pearson R 0.5928 | RMSE 0.6971 | p-value 4.61e-54
+- **Fold 7**: R² 0.3357 | Pearson R 0.5812 | RMSE 0.6934 | p-value 1.26e-51
+- **Fold 4**: R² 0.3304 | Pearson R 0.5806 | RMSE 0.7100 | p-value 1.61e-51
 
 Remarkably consistent performance across folds with R² standard deviation of only 0.0214, indicating robust generalization.
 
