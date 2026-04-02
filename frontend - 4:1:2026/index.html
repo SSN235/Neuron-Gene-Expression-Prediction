@@ -636,7 +636,7 @@ async function runValidation() {
   state.validationInProgress = true;
 
   try {
-    showStatus('validationStatus', 'Running inference...', 'loading');
+    showStatus('validationStatus', 'Downloading SWC files and extracting features... (this may take 30-60s)', 'loading');
 
     // Build request body
     const requestBody = { 
@@ -664,11 +664,18 @@ async function runValidation() {
       }
     }
 
+    // 180s timeout — SWC downloads + Allen data fetch can be slow on cold start
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 180000);
+
     const response = await fetch(state.backendUrl + '/api/infer', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(requestBody)
+      body: JSON.stringify(requestBody),
+      signal: controller.signal
     });
+
+    clearTimeout(timeoutId);
 
     const data = await response.json();
 
@@ -681,9 +688,10 @@ async function runValidation() {
     showStatus('validationStatus', 'Validation complete!', 'success');
 
   } catch (e) {
-    showStatus('validationStatus', 
-      `Validation failed: ${e.message}`, 
-      'error');
+    const msg = e.name === 'AbortError'
+      ? 'Request timed out (180s). Try fewer neurons or try again — the backend may be loading Allen data on first run.'
+      : e.message;
+    showStatus('validationStatus', `Validation failed: ${msg}`, 'error');
   } finally {
     btn.disabled = false;
     btn.textContent = 'Run Validation';
@@ -705,16 +713,23 @@ function displayResults(data, genes) {
   const genesStr = genes.join(', ');
   const model = data.model || 'Unknown';
   const neurons = data.neurons_processed || 0;
+  const fetched = data.neurons_fetched || 0;
+  const swcFail = data.swc_failures || 0;
+  const parseFail = data.parse_failures || 0;
   
   let summaryHTML = `
     <strong>Model:</strong> ${model}<br>
     <strong>Neurons processed:</strong> ${neurons}<br>
+    <strong>Feature source:</strong> ${data.feature_extraction || 'SWC parsing'}<br>
     <strong>Genes analyzed:</strong> ${genesStr}
   `;
 
-  // Add seed information if it was used
+  if (fetched > neurons) {
+    summaryHTML += `<br><strong>Neurons fetched:</strong> ${fetched} (${swcFail} SWC download failures, ${parseFail} parse failures)`;
+  }
+
   if (data.randomSeed !== undefined) {
-    summaryHTML += `<br><strong>Random Seed:</strong> ${data.randomSeed} (ensures external validation data differs from training set)`;
+    summaryHTML += `<br><strong>Random Seed:</strong> ${data.randomSeed} (external validation)`;
   }
 
   document.getElementById('resultsInfo').innerHTML = summaryHTML;
@@ -738,22 +753,25 @@ function displayResults(data, genes) {
           </div>
         `;
       } else {
-        const r2Pct = m.r2 !== null && m.r2 !== undefined ? (m.r2 * 100).toFixed(1) : 'N/A';
+        const r2Val = m.r2 !== null && m.r2 !== undefined ? m.r2 : null;
+        const r2Pct = r2Val !== null ? (r2Val * 100).toFixed(1) : 'N/A';
+        const r2Color = r2Val !== null && r2Val < 0 ? '#c0392b' : '#0d7377';
         const rmseVal = formatNumber(m.rmse, 4);
         const maeVal = formatNumber(m.mae, 4);
         const pearsonVal = formatNumber(m.pearson_r, 4);
+        const pVal = m.p_value !== null && m.p_value !== undefined ? m.p_value.toExponential(2) : 'N/A';
         
         metricsContainer.innerHTML += `
           <div class="metric-card">
             <div style="font-size: 18px; font-weight: 700; color: #0d7377; margin-bottom: 12px;">${gene}</div>
             
             <div class="metric-label">R² Score</div>
-            <div class="metric-value">${r2Pct}${r2Pct !== 'N/A' ? '%' : ''}</div>
+            <div class="metric-value" style="color: ${r2Color}">${r2Pct}${r2Pct !== 'N/A' ? '%' : ''}</div>
             
             <div class="metric-details">
               <div>RMSE: ${rmseVal}</div>
               <div>MAE: ${maeVal}</div>
-              <div>Pearson r: ${pearsonVal}</div>
+              <div>Pearson r: ${pearsonVal} (p=${pVal})</div>
               ${m.n_samples ? `<div>Samples: ${m.n_samples}</div>` : ''}
               ${m.n_dropped_no_expression ? `<div><small style="color: #999;">Dropped (no expr): ${m.n_dropped_no_expression}</small></div>` : ''}
             </div>
