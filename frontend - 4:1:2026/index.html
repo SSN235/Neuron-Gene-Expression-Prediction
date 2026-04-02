@@ -541,7 +541,7 @@ async function testConnection() {
     const data = await response.json();
     
     // Check if models are loaded
-    const modelCount = data.models_loaded ? data.models_loaded.length : 0;
+    const modelCount = data.models_loaded || 0;
     
     if (modelCount > 0) {
       updateBackendStatusIndicator('connected', `Ready (${modelCount} model${modelCount !== 1 ? 's' : ''})`);
@@ -670,14 +670,11 @@ async function runValidation() {
       body: JSON.stringify(requestBody)
     });
 
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    }
-
     const data = await response.json();
 
-    if (data.error) {
-      throw new Error(data.error);
+    if (!response.ok || data.error) {
+      const msg = data.error || `HTTP ${response.status}`;
+      throw new Error(msg);
     }
 
     displayResults(data, genes);
