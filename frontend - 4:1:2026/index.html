@@ -760,8 +760,13 @@ function displayResults(data, genes) {
         const maeVal = formatNumber(m.mae, 4);
         const pearsonVal = m.pearson_r !== null && m.pearson_r !== undefined ? formatNumber(m.pearson_r, 4) : 'N/A';
         const pVal = m.p_value !== null && m.p_value !== undefined ? m.p_value.toExponential(2) : 'N/A';
+        
+        const regionInfo = m.n_unique_regions 
+          ? `<div style="margin-top: 4px;"><small style="color: #888;">Region diversity: ${m.n_unique_regions} unique regions, ${m.n_unique_expr_values || '?'} expression levels</small></div>` 
+          : '';
+        
         const warningHtml = m.warning 
-          ? `<div style="background: #fff3cd; color: #856404; padding: 10px; border-radius: 4px; margin-top: 12px; font-size: 12px; border: 1px solid #ffeeba;">⚠ ${m.warning}</div>` 
+          ? `<div style="background: #fff3cd; color: #856404; padding: 12px; border-radius: 6px; margin-top: 14px; font-size: 13px; border: 1px solid #ffeeba; line-height: 1.5;">⚠️ <strong>Low Region Diversity</strong><br>${m.warning}</div>` 
           : '';
         
         metricsContainer.innerHTML += `
@@ -777,6 +782,7 @@ function displayResults(data, genes) {
               <div>Pearson r: ${pearsonVal}${pVal !== 'N/A' ? ` (p=${pVal})` : ''}</div>
               ${m.n_samples ? `<div>Samples: ${m.n_samples}</div>` : ''}
               ${m.n_dropped_no_expression ? `<div><small style="color: #999;">Dropped (no expr): ${m.n_dropped_no_expression}</small></div>` : ''}
+              ${regionInfo}
             </div>
             ${warningHtml}
           </div>
