@@ -755,11 +755,14 @@ function displayResults(data, genes) {
       } else {
         const r2Val = m.r2 !== null && m.r2 !== undefined ? m.r2 : null;
         const r2Pct = r2Val !== null ? (r2Val * 100).toFixed(1) : 'N/A';
-        const r2Color = r2Val !== null && r2Val < 0 ? '#c0392b' : '#0d7377';
+        const r2Color = r2Val === null ? '#856404' : (r2Val < 0 ? '#c0392b' : '#0d7377');
         const rmseVal = formatNumber(m.rmse, 4);
         const maeVal = formatNumber(m.mae, 4);
-        const pearsonVal = formatNumber(m.pearson_r, 4);
+        const pearsonVal = m.pearson_r !== null && m.pearson_r !== undefined ? formatNumber(m.pearson_r, 4) : 'N/A';
         const pVal = m.p_value !== null && m.p_value !== undefined ? m.p_value.toExponential(2) : 'N/A';
+        const warningHtml = m.warning 
+          ? `<div style="background: #fff3cd; color: #856404; padding: 10px; border-radius: 4px; margin-top: 12px; font-size: 12px; border: 1px solid #ffeeba;">⚠ ${m.warning}</div>` 
+          : '';
         
         metricsContainer.innerHTML += `
           <div class="metric-card">
@@ -771,10 +774,11 @@ function displayResults(data, genes) {
             <div class="metric-details">
               <div>RMSE: ${rmseVal}</div>
               <div>MAE: ${maeVal}</div>
-              <div>Pearson r: ${pearsonVal} (p=${pVal})</div>
+              <div>Pearson r: ${pearsonVal}${pVal !== 'N/A' ? ` (p=${pVal})` : ''}</div>
               ${m.n_samples ? `<div>Samples: ${m.n_samples}</div>` : ''}
               ${m.n_dropped_no_expression ? `<div><small style="color: #999;">Dropped (no expr): ${m.n_dropped_no_expression}</small></div>` : ''}
             </div>
+            ${warningHtml}
           </div>
         `;
       }
