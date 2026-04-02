@@ -621,9 +621,9 @@ async function runValidation() {
       genes 
     };
 
-    // 180s timeout — SWC downloads + Allen data fetch can be slow on cold start
+    // 300s timeout — SWC downloads + Allen data fetch can be slow on cold start
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 180000);
+    const timeoutId = setTimeout(() => controller.abort(), 300000);
 
     const response = await fetch(state.backendUrl + '/api/infer', {
       method: 'POST',
@@ -646,7 +646,7 @@ async function runValidation() {
 
   } catch (e) {
     const msg = e.name === 'AbortError'
-      ? 'Request timed out (180s). Try fewer neurons or try again — the backend may be loading Allen data on first run.'
+      ? 'Request timed out (300s). Try fewer neurons or try again — the backend may be loading Allen data on first run.'
       : e.message;
     showStatus('validationStatus', `Validation failed: ${msg}`, 'error');
   } finally {
