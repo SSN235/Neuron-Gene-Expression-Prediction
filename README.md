@@ -1,6 +1,6 @@
 # NGEP: Neuron Gene Expression Prediction
 
-**Predicting parvalbumin (Pvalb) expression from neuronal morphology using deep learning.**
+**Predicting parvalbumin expression from neuron shape using deep learning.**
 
 ![Python](https://img.shields.io/badge/Python-3.8%2B-blue) ![PyTorch](https://img.shields.io/badge/PyTorch-2.0%2B-red) ![License](https://img.shields.io/badge/License-MIT-green)
 
@@ -8,11 +8,20 @@
 
 ## Overview
 
-NGEP is a computational framework for predicting cell-type-specific gene expression directly from neuronal 3D morphology. Using real open-access data from NeuroMorpho.org and the Allen Brain Atlas, we train a feedforward neural network to infer parvalbumin (Pvalb) mRNA levels in mouse neocortex from five morphological features.
+Here's the basic idea: neurons have wildly different shapes. Some are compact and bushy, others are spread out. Some branch like trees, others are simple. We wondered—does that shape tell you something about what genes the neuron expresses?
 
-**Key Question:** Does the 3D shape of a neuron—its soma size, dendritic length, and branching pattern—contain enough information to predict how much of a cell-type marker gene it expresses?
+This project uses real 3D neuron reconstructions from NeuroMorpho.org and gene expression data from the Allen Brain Atlas to train a neural network on a simple question: can you predict how much parvalbumin a neuron makes just by measuring its morphology?
 
-**Answer:** Yes, meaningfully. The model achieves **R² = 0.3266 ± 0.0214** and **Pearson R = 0.5790 ± 0.0189** across stratified 10-fold cross-validation, with all folds significant at **p < 10⁻⁴⁰**.
+The answer is yes—and it's more predictive than I expected.
+
+**Current results (10-fold CV):**
+- R² = 0.3956 ± 0.027 (explains ~40% of the variance)
+- Pearson r = 0.6322 ± 0.020 (solid correlation)
+- MAE = 0.5073 ± 0.013
+- RMSE = 0.6691 ± 0.016
+- Every single fold came back significant (p < 10⁻⁵¹)
+
+Not perfect, but definitely real. The consistent performance across all 10 folds means we're not overfitting—the model actually learned something about the morphology-expression relationship.
 
 ---
 
@@ -24,12 +33,12 @@ Before running the full pipeline, test the model on new validation data using th
 
 🌐 **[NGEP Validator](https://ngep-validator-frontend.pages.dev/)**
 
-The validator allows you to:
-- Select how many neurons to validate (1–1000+)
-- Automatically fetch fresh neuromorpho.org data (randomized to avoid training data overlap)
-- Get real-time predictions with R², Pearson r, RMSE, and MAE
-- Visualize predicted vs. actual expression
-- Assess model generalization on external data
+The validator lets you:
+- Pick how many neurons to test (1–1000+)
+- Automatically grab fresh data from neuromorpho.org (randomized, not from training)
+- Get real-time predictions with performance metrics
+- See predicted vs actual expression in a scatter plot
+- Check if the model generalizes to new data
 
 **Backend:** Render | **Frontend:** Cloudflare Pages
 
@@ -38,11 +47,11 @@ The validator allows you to:
 ### Installation & Local Setup
 
 ```bash
-# Clone repository
+# Clone the repo
 git clone https://github.com/yourusername/NGEP.git
 cd NGEP
 
-# Create virtual environment (optional but recommended)
+# Virtual environment (optional but recommended)
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
@@ -51,203 +60,110 @@ pip install torch torchvision torchaudio --index-url https://download.pytorch.or
 pip install pandas numpy scikit-learn scipy matplotlib seaborn beautifulsoup4 requests
 ```
 
-### Run the Complete Pipeline
+### Run the Pipeline
 
 ```bash
 # Step 1: Download neuron morphologies from NeuroMorpho.org
 python NGEP_neuron_data_extraction.py
 
-# Step 2: Download gene expression data from Allen Brain Atlas
+# Step 2: Download gene expression from Allen Brain Atlas
 python NGEP_gene_data_extraction.py
 
 # Step 3: Extract morphological features from SWC files
 python NGEP_feature_extraction.py
 
-# Step 4: Prepare data with region-matched expression targets
+# Step 4: Match brain regions to expression values
 python NGEP_data_prep.py
 
-# Step 5: Train model with stratified 10-fold cross-validation
+# Step 5: Train with stratified 10-fold cross-validation
 python NGEP_model.py
 ```
 
-Results are saved to `results/` and trained models to `models/`.
+Results go to `results/` and trained models to `models/`.
+
+---
+
+## Results
+
+### Cross-Validation Performance
+
+Here's what we got across all 10 folds:
+
+| Metric | Mean ± Std | Range | Notes |
+|--------|-----------|-------|-------|
+| **R²** | **0.3956 ± 0.0270** | 0.3400 – 0.4447 | Pretty consistent |
+| **Pearson R** | **0.6322 ± 0.0200** | 0.5899 – 0.6674 | Strong correlation |
+| **RMSE** | **0.6691 ± 0.0155** | 0.6424 – 0.7012 | Stable predictions |
+| **MAE** | **0.5073 ± 0.0128** | 0.4817 – 0.5251 | Off by ~0.5 units on average |
+| **p-value** | **all < 10⁻⁵¹** | 10/10 folds | Definitely not random |
+
+**What this means:** The model explains about 40% of the variance in parvalbumin expression using only morphology. That's not bad considering there are probably tons of other things that matter (epigenetics, development, activity, neuromodulators, etc.). But for just looking at shape? Pretty solid.
+
+### Top Performing Folds
+
+| Fold | R² | Pearson R | RMSE | p-value |
+|------|-----|-----------|------|---------|
+| **9** | **0.4447** | **0.6674** | **0.6424** | **5.98e-73** |
+| **10** | **0.4252** | **0.6528** | **0.6540** | **7.90e-69** |
+| **4** | **0.4048** | **0.6375** | **0.6694** | **7.49e-65** |
+| **7** | **0.4066** | **0.6393** | **0.6554** | **2.44e-65** |
+| **6** | **0.3922** | **0.6275** | **0.6680** | **2.60e-62** |
+
+Fold 9 crushed it. Pretty interesting that it's so consistent though—the worst fold (Fold 2) still got R² = 0.34, so we didn't get weird unlucky splits.
 
 ---
 
 ## NGEP Validator: External Validation Tool
 
-### Overview
+### What It Does
 
-The **NGEP Validator** is a web-based tool for testing the trained model on external validation data. It provides real-time predictions and performance metrics on newly fetched neurons from NeuroMorpho.org, enabling independent assessment of model generalization.
+The validator is a web tool that tests the trained model on completely new neurons from NeuroMorpho.org. This lets you independently verify that the model actually generalizes instead of just memorizing the training data.
 
 🌐 **Live Tool:** [https://ngep-validator-frontend.pages.dev/](https://ngep-validator-frontend.pages.dev/)
 
-### Architecture
-
-| Component | Platform | Function |
-|-----------|----------|----------|
-| **Frontend** | Cloudflare Pages | Interactive UI for data selection, visualization, results display |
-| **Backend** | Render | API for data fetching, feature extraction, model inference |
-| **Data Source** | NeuroMorpho.org REST API | Fresh neuron reconstructions (not from training set) |
-| **Ground Truth** | Static training expression map | 129 brain_region→Pvalb expression mappings from Allen Brain Atlas ISH |
-| **Model** | PyTorch | Trained NGEP 10-fold ensemble (14 engineered features) |
-
 ### How It Works
 
-#### 1. **Data Fetching & Randomization**
-The validator queries NeuroMorpho.org using the **exact same method** as `NGEP_neuron_data_extraction.py`:
-
-```python
-# Validator API parameters — matches training pipeline exactly
-species = "mouse"
-brain_region = "neocortex"  # Only neurons with "neocortex" in brain_region list
-pagesize = 500
-
-# Query with randomized start pages across the database
-neuromorpho_api = "https://neuromorpho.org/api/neuron/select"
-params = {
-    "q": "species:mouse",
-    "page": random_start_page,   # Randomized to avoid training overlap
-    "pagesize": pagesize
-}
-
-# Filter: keep only neurons whose brain_region list contains "neocortex"
-# This matches NGEP_neuron_data_extraction.py which filters:
-#   if "neocortex" not in brain_regions: continue
-```
-
-**Key Feature:** Neurons are filtered to require "neocortex" in their brain_region annotation, matching the training population exactly (all 7,499 training neurons have "neocortex" as a brain_region tag). Parallel page fetching with randomized start pages ensures speed and minimizes overlap with the training set.
-
-#### 2. **Feature Extraction**
-For each fetched neuron, the validator:
-- Downloads the CNG-standardized SWC morphology file from NeuroMorpho.org
-- Extracts the 5 base morphological features (soma radius, dendritic length, bifurcations, terminals, branch density)
-- Engineers 14 features (ratios, products, log transforms, squares) matching `NGEP_model.py` exactly
-- Applies StandardScaler normalization (using the same scaler fitted during training)
-
-```python
-base_features = extract_swc_features(swc_data)
-# Returns: soma_radius, total_dendritic_length, bifurcations, terminals, branch_density
-features_14 = engineer_14_features(base_features)
-# Returns: 5 base + 3 ratios + 2 products + 2 logs + 2 squares = 14 features
-normalized_features = scaler.transform(features_14)
-```
-
-#### 3. **Model Inference**
-The trained model (from the 10-fold CV ensemble) makes predictions:
-
-```python
-# Load ensemble of 10 models (one per fold)
-model_ensemble = [load_model(f"fold_{i}_best.pt") for i in range(10)]
-
-# Predict using all 10 models
-predictions = [model(features) for model in model_ensemble]
-
-# Average predictions (ensemble voting)
-final_prediction = np.mean(predictions)
-```
-
-#### 4. **Performance Metrics**
-The validator computes:
-- **R²:** Coefficient of determination
-- **Pearson r:** Linear correlation with p-value
-- **RMSE:** Root mean squared error
-- **MAE:** Mean absolute error
-
-**Ground truth** is determined by each neuron's brain_region annotation, mapped to Pvalb expression energy using a static lookup table of 129 region→expression mappings. These mappings were pre-computed during training from the full Allen Brain Atlas ISH dataset (all Pvalb datasets, all structures) via `NGEP_data_prep.py`. Using the same pre-computed values guarantees that validation ground truth is identical to training ground truth for any given brain region — the only independent variable being tested is the neuron's morphology (its SWC file), which the model has never seen.
-
-### User Interface
-
-#### Main Screen
-```
-┌─────────────────────────────────────────┐
-│   NGEP Validator - External Validation  │
-│                                         │
-│  Number of neurons to validate:  [50] ▼ │
-│  (1–1000+; higher numbers take longer)   │
-│                                         │
-│  [Fetch Data & Validate] [Results]      │
-└─────────────────────────────────────────┘
-```
-
-#### Results Display
-```
-┌─────────────────────────────────────────┐
-│         Validation Results              │
-│                                         │
-│  Neurons Tested: 50                     │
-│  Data Source: NeuroMorpho.org (random)  │
-│                                         │
-│  ┌──────────────────────────────────┐  │
-│  │ Performance Metrics:             │  │
-│  │ • R²:        0.31 ± 0.05        │  │
-│  │ • Pearson r: 0.56 ± 0.04        │  │
-│  │ • RMSE:      0.71 ± 0.08        │  │
-│  │ • MAE:       0.56 ± 0.06        │  │
-│  └──────────────────────────────────┘  │
-│                                         │
-│  [Predicted vs Actual Plot]            │
-│  [Residual Analysis]                   │
-│  [Download Results CSV]                │
-└─────────────────────────────────────────┘
-```
-
-### Example Workflows
-
-#### Workflow 1: Quick Validation (10 Neurons)
-1. Navigate to [NGEP Validator](https://ngep-validator-frontend.pages.dev/)
-2. Set slider to **10**
-3. Click **"Fetch Data & Validate"**
-4. Wait ~30 seconds for results
-5. View performance metrics and scatter plot
-6. Result: Quick confirmation that model generalizes (expected R² ≈ 0.30)
-
-#### Workflow 2: Comprehensive External Validation (100 Neurons)
-1. Set slider to **100**
-2. Click **"Fetch Data & Validate"**
-3. Wait ~2–3 minutes for API calls, feature extraction, and inference
-4. Download results as CSV
-5. Import into R or Python for secondary analysis
-6. Result: Robust estimate of generalization error with confidence intervals
-
-#### Workflow 3: Monitoring Model Drift Over Time
-1. Run validator every month with 50 neurons
-2. Compare performance metrics across time
-3. Assess whether model maintains predictive power as NeuroMorpho.org grows
-4. If performance drops significantly, retrain on expanded dataset
-5. Result: Long-term tracking of model stability
+The validator:
+1. **Fetches fresh neurons** from NeuroMorpho.org using randomized API pages (so it avoids the training set)
+2. **Filters for neocortex only** (same as training population)
+3. **Extracts the same 14 engineered features** we used in training
+4. **Runs the ensemble of 10 trained models** and averages predictions
+5. **Compares to ground truth** using a static lookup table of brain regions → expression values
+6. **Computes metrics** (R², Pearson r, RMSE, MAE) and shows you everything
 
 ### Key Implementation Details
 
-#### Avoiding Training Data Contamination
-The validator minimizes overlap with the original 7,499 training neurons through:
+**Why randomized page fetching?** NeuroMorpho.org has >300,000 neurons total. We used ~7,500 (2.5%) for training. By randomizing which pages we fetch from, we minimize overlap with the training set.
 
-1. **Large population:** NeuroMorpho.org has >300,000 neurons total; training set is ~2.5%
-2. **Randomized page starts:** Each fetch begins from a random API page, not page 0
-3. **Parallel diversity:** Multiple workers start from different random pages across the database
-4. **Transparent reporting:** Validator logs region distribution and match statistics
+**Why a static expression map?** To avoid systematic drift from re-querying a truncated dataset at validation time. We pre-computed 129 brain_region → expression_energy mappings during training using the full Allen Brain Atlas ISH data, and the validator uses those same values. That way, the only thing being tested is whether the model can handle *unseen neuron morphologies*.
 
-#### Preprocessing Consistency
-- **Scaler:** Uses identical StandardScaler parameters fitted during training
-- **Feature extraction:** Identical Python code as `NGEP_feature_extraction.py`
-- **Feature engineering:** Same 14 engineered features (5 base + 9 derived) in the same order as `NGEP_model.py`
-- **SWC parsing:** Identical SWC parsing logic (no changes to handling of soma types, dendrite types, etc.)
-- **Neuron population:** Same filter as training — only neurons with "neocortex" in their brain_region list
-- **Ground truth expression:** Static lookup table of 129 brain_region→expression_energy mappings, pre-computed from the full Allen Brain Atlas dataset during training (`NGEP_data_prep.py`). This ensures validation ground truth values are identical to training ground truth for the same brain region, avoiding systematic measurement drift from re-querying a truncated subset of the Allen API at runtime.
+**Feature consistency:** The validator uses the exact same StandardScaler, feature engineering, and SWC parsing logic as the training pipeline. Everything is identical except the neuron reconstructions themselves.
 
-#### Model Ensemble
-The validator uses all 10 trained models from the cross-validation:
-- Averaging predictions across 10 models reduces variance
-- Provides more stable estimates than single-model predictions
-- Reflects the final "best model" for external inference
+### How to Use It
+
+#### Quick test (10 neurons, ~30 seconds):
+1. Go to [NGEP Validator](https://ngep-validator-frontend.pages.dev/)
+2. Set slider to 10
+3. Hit "Fetch Data & Validate"
+4. Check the results—should see R² ≈ 0.30-0.40
+
+#### Serious validation (100 neurons, 2-3 minutes):
+1. Set slider to 100
+2. Click "Fetch Data & Validate"
+3. Download results as CSV
+4. Import into R/Python for secondary analysis
+5. Compare to your training results
+
+#### Monthly monitoring:
+1. Run with 50 neurons every month
+2. Track whether performance stays stable over time
+3. If it drops, retrain on expanded dataset
+4. Good way to catch model drift
 
 ### API Endpoints (For Developers)
 
-#### Fetch Neurons
 ```
 POST /api/fetch-neurons
-Content-Type: application/json
-
 {
   "count": 50,
   "species": "mouse",
@@ -261,16 +177,12 @@ Response:
     {"name": "neuron_123", "features": [2.5, 1000, 50, 100, 0.05]},
     ...
   ],
-  "count": 50,
-  "timestamp": "2026-04-01T12:00:00Z"
+  "count": 50
 }
 ```
 
-#### Get Predictions
 ```
 POST /api/predict
-Content-Type: application/json
-
 {
   "features": [[2.5, 1000, 50, 100, 0.05], ...],
   "model_version": "1.0"
@@ -281,17 +193,13 @@ Response:
   "predictions": [6.2, 6.8, 5.9, ...],
   "metadata": {
     "model": "NGEP v1.0 (10-fold ensemble)",
-    "n_predictions": 50,
-    "timestamp": "2026-04-01T12:05:00Z"
+    "n_predictions": 50
   }
 }
 ```
 
-#### Compute Metrics
 ```
 POST /api/evaluate
-Content-Type: application/json
-
 {
   "actual": [6.5, 7.0, 5.8, ...],
   "predicted": [6.2, 6.8, 5.9, ...]
@@ -302,98 +210,11 @@ Response:
   "metrics": {
     "r2": 0.31,
     "pearson_r": 0.56,
-    "pearson_p": 1.2e-40,
     "rmse": 0.71,
     "mae": 0.56
-  },
-  "samples": 50
+  }
 }
 ```
-
-### Troubleshooting
-
-**Q: "Connection timeout" error when fetching neurons**  
-A: NeuroMorpho.org API is temporarily unavailable. Try again in a few minutes. If persistent, contact NeuroMorpho.org support.
-
-**Q: "No SWC file found" for some neurons**  
-A: Some neurons in NeuroMorpho.org lack complete SWC files. Validator skips these and fetches the next available neuron. This is normal and not an error.
-
-**Q: Why are results slightly different from training results?**  
-A: Small differences (R² ±0.05) are expected due to:
-- Different neurons (external validation set with unseen morphologies)
-- Random seed differences if using GPU (floating-point non-determinism)
-- Ensemble averaging (10-fold models may have slight parameter variance)
-- Keyword fallback for unseen brain_region strings (neurons whose exact region annotation wasn't in the 129 training regions use a weighted keyword average)
-
-**Q: Can I download the raw predictions?**  
-A: Yes! Click "Download Results CSV" after validation. Includes neuron names, features, actual expression, predictions, and residuals.
-
-### Integration with Training Pipeline
-
-The validator uses the **same trained models** as the original pipeline:
-
-```
-NGEP_model.py (Training)
-    ↓
-    Outputs: models/fold_0_best.pt ... models/fold_9_best.pt
-    ↓
-NGEP_data_prep.py (Training)
-    ↓
-    Outputs: 129 brain_region → expression_energy mappings
-    (embedded in app.py as TRAINING_EXPRESSION_MAP)
-    ↓
-Validator Backend (Render)
-    ↓
-    Loads 10 models + static expression map
-    Fetches new neurons (neocortex filter, randomized pages)
-    Makes ensemble predictions, computes metrics
-    ↓
-Validator Frontend (Cloudflare)
-    ↓
-    Displays results to user
-```
-
-### Citation
-
-If you use the NGEP Validator in your research, cite both the model and validator tool:
-
-```bibtex
-@software{ngep_validator_2026,
-  title={NGEP Validator: External Validation Tool for Parvalbumin Expression Prediction},
-  author={Your Name},
-  year={2026},
-  url={https://ngep-validator-frontend.pages.dev/},
-  howpublished={\url{https://github.com/yourusername/NGEP-validator}}
-}
-```
-
----
-
-
-
-### Cross-Validation Performance
-
-| Metric | Mean ± Std | Range | Status |
-|--------|-----------|-------|--------|
-| **R²** | **0.3266 ± 0.0214** | 0.2876 – 0.3560 | ✅ Robust |
-| **Pearson R** | **0.5790 ± 0.0189** | 0.5389 – 0.6063 | ✅ Significant |
-| **RMSE** | **0.7064 ± 0.0124** | 0.6910 – 0.7290 | ✅ Stable |
-| **MAE** | **0.5608 ± 0.0071** | 0.5517 – 0.5777 | ✅ Consistent |
-| **p-value** | **all < 10⁻⁴⁰** | 10/10 folds | ✅ Highly significant |
-
-**Interpretation:** The model explains approximately 31% of variance in Pvalb expression from five simple morphological measurements alone. This is meaningful because it demonstrates that neuronal structure encodes detectable molecular information without any biochemical assay.
-
-### Top 5 Performing Folds
-
-| Rank | Fold | R² | Pearson R | RMSE | p-value |
-|------|------|-----|-----------|------|---------|
-| 1 | **Fold 5** | **0.3560** | **0.6052** | **0.6910** | **6.11e-57** |
-| 2 | Fold 6 | 0.3511 | 0.6063 | 0.6902 | 3.36e-57 |
-| 3 | Fold 10 | 0.3470 | 0.5928 | 0.6971 | 4.61e-54 |
-| 4 | Fold 7 | 0.3357 | 0.5812 | 0.6934 | 1.26e-51 |
-| 5 | Fold 4 | 0.3304 | 0.5806 | 0.7100 | 1.61e-51 |
-
-**Key Finding:** Remarkably consistent performance across all 10 folds with R² standard deviation of only **0.0214**, indicating robust generalization with minimal overfitting.
 
 ---
 
@@ -401,114 +222,111 @@ If you use the NGEP Validator in your research, cite both the model and validato
 
 ### Neuronal Morphology (NeuroMorpho.org)
 
-- **Source:** NeuroMorpho.org REST API (open-access)
-- **Species:** Mouse (*Mus musculus*)
+- **Source:** NeuroMorpho.org REST API
+- **Species:** Mouse
 - **Brain Region:** Neocortex
-- **Sample Size:** 7,499 neurons
-- **Format:** SWC (Standardized morphology file format)
-- **Reconstruction Quality:** Multiple labs, verified reconstructions
+- **Total Neurons:** 7,499
+- **File Format:** SWC (standard morphology format)
+- **Quality:** Verified reconstructions from multiple labs
 
 ### Gene Expression (Allen Brain Atlas)
 
-- **Source:** Allen Brain Atlas RMA API (open-access)
+- **Source:** Allen Brain Atlas RMA API
 - **Gene:** Parvalbumin (Pvalb)
 - **Method:** In situ hybridization (ISH)
-- **Species:** Mouse (*Mus musculus*)
-- **Age:** Adult
-- **Metric:** Expression energy (normalized intensity across structures)
-- **Coverage:** Region-specific values for ~70 neocortical substructures
+- **Species:** Mouse, adult
+- **Metric:** Expression energy (normalized intensity)
+- **Coverage:** ~70 neocortical substructures
 
-### Region Matching Strategy
+### Region Matching
 
-Each neuron's metadata contains brain region information (e.g., "neocortex, occipital, layer 5"). We match this to Allen structures using keyword-based mapping:
+Each neuron in the dataset has brain region metadata like "neocortex, occipital, layer 5". We match this to Allen structures using keyword-based lookups:
+- Cortical areas: occipital, somatosensory, motor, temporal, parietal, prefrontal, etc.
+- Layers: 1–6 (with special handling for layer 2/3 and 6b)
+- Substructures: primary/secondary, orbital, insula, cingulate, etc.
 
-- **Cortical areas:** occipital, somatosensory, motor, temporal, parietal, prefrontal, etc.
-- **Cortical layers:** Layer 1–6, with special handling for layer 2/3 and 6b
-- **Substructures:** Primary/secondary distinctions, orbital, insula, retrosplenial, cingulate
-
-This produces a **target variance of ~0.49**, providing genuine learning signal beyond random fluctuation.
+This gives us enough variance in the target (~0.49) to actually train on.
 
 ---
 
 ## Features
 
-### Five Morphological Features
+### The Five Morphological Measurements
 
-Extracted from each neuron's 3D reconstruction (SWC file):
+These are the basic features we extract from each neuron's SWC file:
 
-| Feature | Definition | Biological Relevance |
-|---------|-----------|----------------------|
-| **Soma radius** | Sum of radii of all soma nodes | Cell body size; metabolic capacity |
-| **Total dendritic length** | Cumulative Euclidean distance between dendrite nodes | Synaptic input capacity; integration surface |
-| **Bifurcation count** | Number of nodes with ≥2 children | Branching complexity; structural elaboration |
-| **Terminal count** | Number of leaf nodes (no children) | Number of synaptic endpoints; output targets |
-| **Branch density** | Bifurcations / (dendritic length + 1e-6) | Compactness of arborization; local vs. distributed |
+| Feature | What It Is | Why It Matters |
+|---------|-----------|----------------|
+| **Soma radius** | Total radius of soma nodes | Cell body size; relates to metabolism and electrical properties |
+| **Total dendritic length** | Sum of all distances between dendrite nodes | How much surface area for receiving inputs |
+| **Bifurcation count** | How many times dendrite branches | Structural complexity; elaboration of the tree |
+| **Terminal count** | Number of leaf nodes (endpoints) | Potential number of output synapses |
+| **Branch density** | Bifurcations / dendritic length | How compact the branching is; local vs. distributed structure |
 
-**Why These Features?** Parvalbumin+ interneurons are known to have compact, aspiny dendrites with high branch density relative to pyramidal neurons. These five measurements capture both overall size and architectural organization—the key morphological signatures of cell type.
+**Why these five?** Parvalbumin+ interneurons are known for compact, heavily branched dendrites. These measurements capture both overall size and the branching pattern—basically the morphological signature of fast-spiking interneurons.
 
 ---
 
 ## Model Architecture
 
-### Feature Engineering
+### Feature Engineering (5 → 14 Features)
 
-Original 5 morphological features expanded to **14 engineered features** to capture nonlinear relationships and feature interactions:
+We took the 5 base features and derived 9 more to capture nonlinear relationships:
 
-**Ratios** (morphological relationships):
-- `dendritic_length / soma_radius`: neurons with long dendrites relative to soma may express differently
-- `bifurcations / terminals`: branching efficiency (branch quality)
-- `terminals / dendritic_length`: terminal density along dendrite
+**Ratios:**
+- dendritic_length / soma_radius
+- bifurcations / terminals
+- terminals / dendritic_length
 
-**Products** (complexity and interactions):
-- `soma_radius × dendritic_length`: overall neuron size scaling
-- `bifurcations × terminals`: branching complexity (highly branched + many endpoints = fundamentally different structure)
+**Products:**
+- soma_radius × dendritic_length
+- bifurcations × terminals
 
-**Log Transforms** (normalize skewed distributions):
-- `log(bifurcations + 1)`: bifurcation counts are right-skewed; log normalizes distribution for better learning
-- `log(terminals + 1)`: same reasoning; helps model learn exponential relationships
+**Log Transforms:**
+- log(bifurcations + 1)
+- log(terminals + 1)
 
-**Squares** (nonlinear effects):
-- `soma_radius²`: surface area and volume scale nonlinearly with radius
-- `dendritic_length²`: captures nonlinear growth effects on expression
+**Squares:**
+- soma_radius²
+- dendritic_length²
 
-### Neural Network Design
+These transformations help the network learn interactions and nonlinear effects.
+
+### Neural Network
 
 ```
-Input (14 engineered features)
+Input (14 features)
     ↓
-Linear(128) → BatchNorm1d → ReLU → Dropout(0.1)
+Linear(128) → BatchNorm → ReLU → Dropout(0.1)
     ↓
-Linear(64) → BatchNorm1d → ReLU → Dropout(0.1)
+Linear(64) → BatchNorm → ReLU → Dropout(0.1)
     ↓
-Linear(1) → [Regression output]
+Linear(1) → Output (expression energy)
 ```
 
-**Architecture Rationale:**
-- **Expanded features (5→14):** Feature engineering provides richer morphological information while maintaining interpretability
-- **Two hidden layers:** Sufficient complexity for feature interactions without overfitting
-- **Batch normalization:** Stabilizes training; accelerates convergence; improves generalization
-- **Dropout (0.1):** Modest regularization to prevent memorization
-- **Linear output:** Unbounded predictions appropriate for regression target range (5.6–7.5)
+**Why this design:**
+- Two hidden layers is enough for the problem size
+- Batch normalization stabilizes training and helps generalization
+- Light dropout (0.1) prevents overfitting without hurting learning
+- Linear output for unbounded regression
 
-### Training Configuration
+### Training
 
 | Parameter | Value |
 |-----------|-------|
-| **Optimizer** | Adam |
-| **Learning rate** | 0.001 |
-| **Loss function** | SmoothL1Loss (β=1.0) — more robust to outliers than MSE |
-| **Batch size** | 8 |
-| **Epochs** | 150 |
-| **Dropout rate** | 0.1 |
-| **LR scheduler** | ReduceLROnPlateau (factor=0.5, patience=10) |
+| Optimizer | Adam |
+| Learning rate | 0.001 |
+| Loss | SmoothL1Loss (robust to outliers) |
+| Batch size | 8 |
+| Epochs | 150 |
+| LR schedule | ReduceLROnPlateau (factor=0.5, patience=10) |
 
-### Cross-Validation Strategy
+### Cross-Validation
 
-- **Method:** Stratified 10-fold cross-validation
-- **Stratification:** By brain region to ensure regional distribution in each fold
-- **Scaling:** StandardScaler fit on training fold only (prevents data leakage)
-- **Random seed:** 42 (reproducibility)
-- **Final fold size:** ~6,749 training samples, ~750 test samples
+- **Method:** Stratified 10-fold (stratified by brain region)
+- **Scaler:** StandardScaler fitted on each training fold only (prevents data leakage)
+- **Random seed:** 42
+- **Fold size:** ~6,750 training, ~750 test per fold
 
 ---
 
@@ -516,280 +334,182 @@ Linear(1) → [Regression output]
 
 ```
 NGEP/
-├── README.md                              # This file
-├── NGEP_writeup.pdf                       # Detailed scientific writeup
+├── README.md
+├── NGEP_writeup.pdf
 │
 ├── Data Extraction
-├── NGEP_neuron_data_extraction.py         # Download SWC files from NeuroMorpho.org
-├── NGEP_gene_data_extraction.py           # Download expression data from Allen Atlas
+├── NGEP_neuron_data_extraction.py
+├── NGEP_gene_data_extraction.py
 │
 ├── Feature Engineering
-├── NGEP_feature_extraction.py             # Extract 5 morphological features
-├── NGEP_data_prep.py                      # Region matching & target assignment
+├── NGEP_feature_extraction.py
+├── NGEP_data_prep.py
 │
 ├── Model Training
-├── NGEP_model.py                          # PyTorch model & 10-fold CV training
+├── NGEP_model.py
 │
 ├── data/
-│   ├── neuromorpho/                       # SWC files & metadata
+│   ├── neuromorpho/
 │   │   ├── neuron_metadata.csv
-│   │   ├── neuron_names.csv
-│   │   └── *.swc                          # Individual neuron files
-│   ├── allen/                             # Expression data
-│   │   ├── expression_by_structure.csv
-│   │   └── section_datasets.json
-│   ├── features.csv                       # Morphological features
-│   ├── region_morphology_stats_mean.csv   # Regional statistics
-│   └── features_with_expression.csv       # Final dataset for model
+│   │   └── *.swc
+│   ├── allen/
+│   │   └── expression_by_structure.csv
+│   ├── features.csv
+│   └── features_with_expression.csv
 │
 ├── results/
-│   ├── cross_validation_metrics.csv       # Per-fold performance
-│   ├── cv_r2_scores.png                   # R² across folds (bar plot)
-│   ├── predicted_vs_actual.png            # Scatter plot
-│   ├── residuals.png                      # Residual analysis
-│   └── learning_curves/                   # Per-fold training curves
-│       ├── all_folds_learning_curves.png
-│       ├── fold_01_learning_curve.png
-│       ├── fold_02_learning_curve.png
-│       └── ... [10 total]
+│   ├── cross_validation_metrics.csv
+│   ├── cv_r2_scores.png
+│   ├── predicted_vs_actual.png
+│   ├── residuals.png
+│   └── learning_curves/
+│       └── [fold_01-10_learning_curve.png]
 │
 └── models/
-    ├── fold_0_best.pt                     # Trained weights for each fold
+    ├── fold_0_best.pt
     ├── fold_1_best.pt
-    └── ... [10 total]
+    └── ... [fold 2-9]
 ```
 
 ---
 
-## Data Flow
+## Why Parvalbumin Matters Clinically
 
-```
-NeuroMorpho.org (SWC files)           Allen Brain Atlas (ISH data)
-        ↓                                         ↓
-NGEP_neuron_data_extraction.py        NGEP_gene_data_extraction.py
-        ↓                                         ↓
-    neuron_metadata.csv               expression_by_structure.csv
-    + *.swc files (7,499)                    
-        ↓                                         ↓
-NGEP_feature_extraction.py    ←──────────────────┘
-        ↓
-    features.csv (morphology)
-        +
-    metadata (brain region)
-        ↓
-NGEP_data_prep.py
-        ↓
-    features_with_expression.csv ← Region-matched targets
-        ↓
-NGEP_model.py
-        ↓
-    Stratified 10-fold CV
-    ↓
-    results/cross_validation_metrics.csv
-    models/fold_*.pt (10 trained models)
-    results/[figures, learning curves]
-```
+### The Biology
 
----
+Parvalbumin is expressed almost exclusively in fast-spiking GABAergic interneurons. These are the brain's "rhythm keepers"—they generate synchronized oscillations and maintain inhibitory control. They're critical for:
 
-## Clinical Significance: Why Parvalbumin Matters
+- **Gamma oscillations** (30–100 Hz): linked to attention, memory, sensory processing
+- **Temporal precision:** coordinating exact spike timing across populations
+- **E/I balance:** preventing seizures and hyperexcitation
+- **Network stability:** controlling the flow of information
 
-### Parvalbumin Biology
+### Why It's Broken in Disease
 
-**Parvalbumin (Pvalb)** is a calcium-binding protein expressed almost exclusively in **fast-spiking GABAergic interneurons**—the brain's inhibitory "rhythm keepers." These cells are critical for:
+**Autism & ASD:** Reduced Pvalb+ function correlates with social deficits. Stimulating these neurons rescues social behavior in mouse models.
 
-- **Gamma oscillations** (30–100 Hz): Synchronized neural firing linked to attention, memory, and sensory processing
-- **Temporal precision**: Coordinating precise spike timing across neuronal populations
-- **Network stability**: Preventing pathological hyperexcitation and seizures
-- **E/I balance**: Maintaining healthy excitation-inhibition equilibrium
+**Schizophrenia:** Selective loss of Pvalb+ cells in prefrontal cortex. Disrupted gamma oscillations predict cognitive symptoms.
 
-### Neurological Disease Implications
+**Epilepsy:** Less Pvalb expression → less inhibition → seizures. Genetic variants affecting Pvalb are risk factors.
 
-**Pvalb+ interneuron dysfunction is implicated in:**
+**Alzheimer's:** Pvalb+ interneurons degenerate early. Their loss correlates with memory deficits.
 
-#### Autism Spectrum Disorder (ASD)
-- Reduced Pvalb expression and GABAergic inhibition in autism brains
-- Loss of gamma oscillations correlates with social and sensory deficits
-- Stimulating Pvalb interneurons rescues social behavior in mouse models
+**Fragile X:** Excessive excitation + impaired Pvalb maturation. Restoring these cells rescues behavioral symptoms.
 
-#### Schizophrenia
-- Selective loss of Pvalb+ basket cells in prefrontal cortex
-- Disrupted gamma oscillations and cognitive dysfunction
-- Antipsychotic efficacy correlates with restoration of Pvalb+ function
+**Parkinson's:** Altered Pvalb circuits in basal ganglia contribute to motor dysfunction.
 
-#### Epilepsy & Seizure Disorders
-- Reduced Pvalb expression → loss of inhibition → increased seizure susceptibility
-- Genetic variants affecting Pvalb expression are seizure risk factors
-- Therapies targeting GABAergic Pvalb cells show promise in drug-resistant epilepsy
+**ADHD:** Pvalb interneurons in prefrontal cortex support sustained attention. Dysfunction → attention deficits.
 
-#### Alzheimer's Disease
-- Pvalb+ interneurons degenerate in early Alzheimer's pathology
-- Loss of gamma oscillations correlates with memory deficits
-- Pvalb expression is a biomarker of cognitive reserve
+### Clinical Applications
 
-#### Fragile X Syndrome
-- Excessive excitation and impaired Pvalb interneuron maturation
-- Restoring Pvalb function rescues behavioral and cognitive symptoms
+1. **Drug screening:** Pharmaceutical companies developing therapies to enhance Pvalb expression or function could use this model to rapidly screen neurons from patient-derived cells
 
-#### Parkinson's Disease
-- Altered Pvalb expression in basal ganglia contributes to motor dysfunction
-- Targeting Pvalb+ circuits may improve motor symptoms
+2. **Biomarkers:** Predict Pvalb levels from microscopy without expensive genomic assays
 
-#### ADHD & Executive Function
-- Pvalb interneurons in prefrontal cortex support sustained attention
-- Dysfunction → attention deficits; stimulation improves attention in preclinical models
+3. **Patient stratification:** Use morphological imaging to identify patients with Pvalb circuit dysfunction
+
+4. **Treatment validation:** Quickly verify whether new ASD, schizophrenia, or epilepsy drugs restore Pvalb interneuron function
+
+5. **Quality control:** Screen organoids and iPSC-derived neurons for healthy Pvalb interneurons before clinical use
+
+6. **Understanding mechanisms:** Figure out which morphological features matter most for proper Pvalb expression
 
 ---
 
-## Clinical Applications
+## What We Actually Learned
 
-### 1. Morphology-to-Expression Screening for Drug Discovery
-**Use case:** Pharmaceutical companies developing drugs to enhance Pvalb expression or function  
-**This model enables:** Screening neuron morphologies from patient-derived iPSCs to predict Pvalb levels *without* waiting for gene sequencing  
-**Benefit:** Faster identification of candidate neurons and therapeutic compounds
+The model explains ~40% of variance. That leaves 60% unexplained. Why? Because morphology is only part of the story:
 
-### 2. Biomarker Development
-**Use case:** Quantifying Pvalb interneuron health in organoids and patient tissue samples  
-**This model enables:** Predicting gene expression from morphological features visible in microscopy, reducing need for expensive genomic assays  
-**Benefit:** Accessible biomarkers for disease severity and treatment response
+- **Epigenetics:** DNA methylation, chromatin state
+- **Transcription factors:** Which regulatory proteins are active
+- **Development:** Whether the neuron is mature, immature, or still developing
+- **Circuit context:** What other neurons it's connected to
+- **Neuromodulation:** Dopamine, serotonin, acetylcholine, etc.
+- **Electrophysiology:** Firing patterns, input resistance, membrane properties
+- **Metabolic state:** Energy availability, growth state
 
-### 3. Patient Stratification
-**Use case:** Identifying which patients have the most Pvalb circuit dysfunction  
-**This model enables:** Predicting Pvalb expression from structural MRI or morphological imaging to stratify patients for targeted therapies  
-**Benefit:** Personalized medicine—treating patients with documented Pvalb deficiency
-
-### 4. Therapy Validation
-**Use case:** Testing whether new ASD, schizophrenia, or epilepsy drugs restore Pvalb interneuron function  
-**This model enables:** Rapid morphological readouts to confirm Pvalb circuit restoration *without* slow RNA sequencing  
-**Benefit:** Accelerated clinical trial turnaround
-
-### 5. Organoid & iPSC Quality Control
-**Use case:** Ensuring neural organoids and patient-derived neurons have healthy Pvalb interneurons before clinical use  
-**This model enables:** Morphological screening to predict Pvalb maturation and functionality  
-**Benefit:** Better quality control for regenerative medicine and cell therapy
-
-### 6. Mechanistic Understanding
-**Use case:** Understanding how neuronal morphology ("structure") links to molecular function ("gene expression")  
-**This model enables:** Identifying which morphological features are most critical for proper Pvalb function  
-**Benefit:** Targets for interventions and rational design of therapies
+The fact that morphology alone gets us to 40% is actually pretty interesting. It suggests that shape and gene expression are genuinely linked, not just random correlation.
 
 ---
 
-## Interpretability & Insights
+## Limitations
 
-### What the Model Learns
+**What we did well:**
+- Used real data throughout (no synthetic data)
+- Region-specific targets (each neuron matched to its brain region's expression)
+- Rigorous cross-validation with proper scaling (no data leakage)
+- Highly consistent results across folds (std = 0.027)
+- All results are statistically significant (p < 10⁻⁵¹)
+- Full reproducibility (code + data sources provided)
 
-The model achieves R² = 0.31, explaining about 31% of Pvalb expression variance from morphology alone. The remaining 69% is attributable to:
-
-- **Epigenetic state** (DNA methylation, chromatin accessibility)
-- **Transcription factor activity** and regulatory network state
-- **Developmental history** and maturation stage
-- **Local circuit context** and neuromodulatory input
-- **Electrophysiological properties** (firing rate, input resistance)
-- **Cell cycle state** and metabolic conditions
-
-This partition is biologically plausible—morphology is *one* determinant of cell identity, not the only one.
-
-### Feature Importance (Biological Interpretation)
-
-While the current model does not perform explicit feature importance ranking, we can infer from known biology:
-
-- **Branch density** (bifurcations / dendritic length): Most directly linked to the compact arborization characteristic of Pvalb+ fast-spiking interneurons
-- **Total dendritic length**: Correlates with synaptic integration capacity and input gain
-- **Bifurcation count**: Reflects complexity of dendritic tree, linked to branching morphology of interneuron subtypes
-- **Soma radius**: Cell body size reflects metabolic capacity and electrophysiological properties (input resistance, current generation)
-- **Terminal count**: Number of potential output synapses
+**What we didn't do:**
+- Dataset is moderate size (7,499 neurons; bigger would help)
+- Only measured 5 base features (spine density, axonal properties, electrophysiology not included)
+- Only one gene, one cell type (generalization unknown)
+- Cross-sectional snapshot (no developmental dynamics)
+- Correlation, not causation (morphology might be a consequence, not cause, of expression)
+- Mouse neocortex only (applicability to human brain or other regions unclear)
 
 ---
 
-## Generalization & Limitations
+## Future Work
 
-### Strengths
+### Short-term (doable soon)
+- Permutation feature importance (which of the 5 features matters most?)
+- More engineered features (soma-to-dendrite ratios, spine density, path asymmetry)
+- Larger dataset (500–1,000 neurons; NeuroMorpho.org has 300k+ available)
+- Multi-gene prediction (GAD1, GFAP, other interneuron markers)
 
-✅ **Real data throughout:** All 7,499 neurons from NeuroMorpho.org; all expression from Allen Brain Atlas (no synthetic data)  
-✅ **Region-specific targets:** Each neuron receives subregion-matched expression (target variance ≈ 0.49)  
-✅ **Rigorous CV:** Stratified 10-fold with per-fold scaling prevents data leakage  
-✅ **Exceptional consistency:** R² std = 0.0214 across folds (not fold-dependent artifacts)  
-✅ **Highly significant:** All folds p < 10⁻⁴⁰ (morphology-expression link is robust, non-random)  
-✅ **Reproducible:** Full code and data sources provided; results are independently verifiable
+### Medium-term (6–12 months)
+- Graph neural networks (learn from full morphology structure instead of hand-crafted features)
+- Compare interneurons vs. pyramidal neurons (is the morphology-expression link universal?)
+- Per-cortical-area models (V1 vs. M1 vs. PFC might have different relationships)
+- Electrophysiology integration (add measured firing rates, input resistance, etc.)
 
-### Limitations
-
-⚠️ **Moderate dataset (n=7,499):** Larger samples would reduce variance and enable deeper architectures  
-⚠️ **Sparse base feature set (5 base features, 14 engineered):** Spine density, axonal morphology, electrophysiology not included  
-⚠️ **Single gene, single cell type:** Generalization to other genes or non-interneuron populations unknown  
-⚠️ **Cross-sectional:** Developmental dynamics and activity-dependent changes not captured  
-⚠️ **Correlation, not causation:** Morphology may be a consequence rather than driver of expression state  
-⚠️ **Mouse neocortex only:** Applicability to human cortex or other brain regions unclear
-
----
-
-## Future Directions
-
-### Short-Term (Immediate Extensions)
-
-- **Permutation feature importance:** Rank which of the five features drives predictions most
-- **Expanded feature engineering:** Add soma-to-dendritic-length ratio, axonal properties, spine density, path asymmetry
-- **Larger dataset:** Scale to 500–1,000 neurons (NeuroMorpho.org has >300,000 neurons available)
-- **Multi-gene prediction:** Extend to GAD1, GFAP, or a panel of interneuron markers using multi-task learning
-
-### Medium-Term (6–12 months)
-
-- **Graph neural networks:** Replace hand-crafted features with learned embeddings of the full morphology graph (GCN/GAT)
-- **Multi-cell-type comparison:** Compare interneurons vs. pyramidal neurons to test whether the morphology-expression link is cell-type-general
-- **Regional stratification:** Train separate models per cortical area (V1, M1, PFC) to test for area-specific relationships
-- **Electrophysiological integration:** Add measured firing rates, input resistance, rheobase to model
-
-### Long-Term (1–2 years)
-
-- **Single-cell RNA-seq validation:** Cross-validate predictions against MERFISH or 10x Genomics data from same brain regions
-- **Developmental dynamics:** Longitudinal data tracking morphology-expression changes from birth to adulthood
-- **In vivo validation:** Measure Pvalb expression and morphology in the same neurons *in vivo* using 2-photon microscopy
-- **Human translation:** Extend to human iPSC-derived neurons and patient tissue samples
-- **Multi-omics integration:** Integrate proteomics, phosphoproteomics, chromatin accessibility (ATAC-seq) to test mechanism
+### Long-term (1–2 years)
+- Cross-validate with single-cell RNA-seq data (MERFISH, 10x Genomics)
+- Developmental time series (track morphology-expression changes from birth to adulthood)
+- In vivo validation (measure expression + morphology in the same neurons using 2-photon microscopy)
+- Human translation (test on iPSC-derived neurons and patient tissue)
+- Multi-omics integration (proteomics, phosphoproteomics, ATAC-seq for mechanisms)
 
 ---
 
-## Configuration & Hyperparameters
+## Configuration
 
-All major hyperparameters are user-configurable at the top of `NGEP_model.py`:
+All hyperparameters at the top of `NGEP_model.py`:
 
 ```python
 DATA_FILE = 'data/features_with_expression.csv'
-USE_GPU = True                    # Set to False for CPU-only
-BATCH_SIZE = 8                    # Training batch size
-LEARNING_RATE = 0.001            # Adam learning rate
-NUM_EPOCHS = 150                  # Training epochs
-HIDDEN_1 = 128                    # First hidden layer width
-HIDDEN_2 = 64                     # Second hidden layer width
-DROPOUT = 0.1                     # Dropout rate (prevent overfitting)
-NUM_FOLDS = 10                    # Cross-validation folds
-RANDOM_STATE = 42                # Random seed for reproducibility
+USE_GPU = True
+BATCH_SIZE = 8
+LEARNING_RATE = 0.001
+NUM_EPOCHS = 150
+HIDDEN_1 = 128
+HIDDEN_2 = 64
+DROPOUT = 0.1
+NUM_FOLDS = 10
+RANDOM_STATE = 42
 ```
 
-### Adjusting for Your Data
-
-If you scale this approach to a larger dataset (>500 neurons):
-
+**For larger datasets (500+ neurons), consider:**
 ```python
-# For larger datasets, consider deeper networks:
 HIDDEN_1 = 256
 HIDDEN_2 = 128
-HIDDEN_3 = 64           # Add a third layer
-DROPOUT = 0.2           # Increase regularization
-LEARNING_RATE = 0.0005  # Reduce learning rate for stability
+HIDDEN_3 = 64
+DROPOUT = 0.2
+LEARNING_RATE = 0.0005
 ```
 
 ---
 
 ## Reproducibility
 
-### Random Seed
-All random number generation is seeded with `RANDOM_STATE = 42`. Results should be perfectly reproducible given the same environment and hardware (within floating-point precision).
+Everything is seeded with `RANDOM_STATE = 42`. Results should be perfectly reproducible on CPU. GPU can introduce minor floating-point differences.
 
-### Dependencies Pinning
-For exact reproducibility, pin library versions:
+To get CPU-only runs, set `USE_GPU = False` in `NGEP_model.py`.
 
+Exact versions:
 ```
 torch==2.0.1
 pandas==2.0.3
@@ -798,109 +518,4 @@ scikit-learn==1.3.0
 scipy==1.11.1
 matplotlib==3.7.1
 seaborn==0.12.2
-requests==2.31.0
-beautifulsoup4==4.12.2
 ```
-
-### Hardware Effects
-- GPU execution (CUDA/MPS) may introduce minor floating-point differences
-- CPU execution is slower but fully reproducible
-- Set `USE_GPU = False` in `NGEP_model.py` for CPU-only runs
-
----
-
-## Troubleshooting
-
-### Common Issues
-
-**Q: API timeout when downloading neuron data**  
-A: Increase timeout in `NGEP_neuron_data_extraction.py`: `requests.get(..., timeout=60)`
-
-**Q: Not enough RAM for feature extraction**  
-A: Process SWC files in batches instead of loading all at once. Modify main loop in `NGEP_feature_extraction.py`.
-
-**Q: GPU out of memory during training**  
-A: Reduce `BATCH_SIZE` or set `USE_GPU = False` in `NGEP_model.py`
-
-**Q: "No SWC link found" errors**  
-A: NeuroMorpho.org page structure occasionally changes. Check manually if needed at https://neuromorpho.org/
-
-**Q: Missing expression values**  
-A: Some neurons map to brain regions without Allen data. Check `features_with_expression.csv` for NaN entries.
-
----
-
-## Citation
-
-If you use NGEP in your research, please cite:
-
-```bibtex
-@article{ngep_2026,
-  title={NGEP: Predicting Parvalbumin Expression from Neuronal Morphology Using Deep Learning},
-  author={Your Name and Collaborators},
-  journal={Your Journal},
-  year={2026},
-  doi={your_doi}
-}
-```
-
-Also cite the underlying data sources:
-
-```bibtex
-@article{ascoli2007neuromorpho,
-  title={NeuroMorpho.Org: A central resource for neuronal morphologies},
-  author={Ascoli, Giorgio A and others},
-  journal={Journal of Neuroscience},
-  volume={27},
-  number={35},
-  pages={9247--9251},
-  year={2007}
-}
-
-@article{lein2007allen,
-  title={Genome-wide atlas of gene expression in the adult mouse brain},
-  author={Lein, Ed S and others},
-  journal={Nature},
-  volume={445},
-  number={7124},
-  pages={168--176},
-  year={2007}
-}
-```
-
----
-
-## License
-
-This project is licensed under the MIT License. See LICENSE file for details.
-
-Open-access data sources (NeuroMorpho.org, Allen Brain Atlas) have their own terms of use—see their websites for details.
-
----
-
-## Contact & Support
-
-**For questions about the code:**  
-Open an issue on GitHub or contact the repository maintainer.
-
-**For clinical applications or collaborations:**  
-Contact the corresponding author (details in `NGEP_writeup.pdf`).
-
-**For questions about the data sources:**
-- NeuroMorpho.org: https://neuromorpho.org/
-- Allen Brain Atlas: https://brain-map.org/
-
----
-
-## Acknowledgments
-
-- **NeuroMorpho.org** for hosting open-access neuron reconstructions
-- **Allen Brain Institute** for the comprehensive in situ hybridization expression atlas
-- **PyTorch team** for the excellent deep learning framework
-- **Scikit-learn community** for data preprocessing and evaluation utilities
-
----
-
-**Last updated:** April 2, 2026  
-**Status:** Stable, reproducible results across stratified 10-fold CV  
-**Recommended for:** Exploratory research, proof-of-concept, clinical biomarker development
