@@ -15,11 +15,11 @@ This project uses real 3D neuron reconstructions from NeuroMorpho.org and gene e
 The answer is yes—and it's more predictive than I expected.
 
 **Current results (10-fold CV):**
-- R² = 0.3956 ± 0.027 (explains ~40% of the variance)
-- Pearson r = 0.6322 ± 0.020 (solid correlation)
-- MAE = 0.5073 ± 0.013
-- RMSE = 0.6691 ± 0.016
-- Every single fold came back significant (p < 10⁻⁵¹)
+- R² = 0.4034 ± 0.0180 (explains ~40% of the variance)
+- Pearson r = 0.6325 ± 0.0151 (solid correlation)
+- MAE = 0.5032 ± 0.0090
+- RMSE = 0.6705 ± 0.0125
+- Every single fold came back significant (p < 10⁻⁵⁸)
 
 Not perfect, but definitely real. The consistent performance across all 10 folds means we're not overfitting—the model actually learned something about the morphology-expression relationship.
 
@@ -91,11 +91,11 @@ Here's what we got across all 10 folds:
 
 | Metric | Mean ± Std | Range | Notes |
 |--------|-----------|-------|-------|
-| **R²** | **0.3956 ± 0.0270** | 0.3400 – 0.4447 | Pretty consistent |
-| **Pearson R** | **0.6322 ± 0.0200** | 0.5899 – 0.6674 | Strong correlation |
-| **RMSE** | **0.6691 ± 0.0155** | 0.6424 – 0.7012 | Stable predictions |
-| **MAE** | **0.5073 ± 0.0128** | 0.4817 – 0.5251 | Off by ~0.5 units on average |
-| **p-value** | **all < 10⁻⁵¹** | 10/10 folds | Definitely not random |
+| **R²** | **0.4034 ± 0.0180** | 0.3745 – 0.4419 | Very consistent |
+| **Pearson R** | **0.6325 ± 0.0151** | 0.6154 – 0.6654 | Strong correlation |
+| **RMSE** | **0.6705 ± 0.0125** | 0.6444 – 0.6827 | Stable predictions |
+| **MAE** | **0.5032 ± 0.0090** | 0.4942 – 0.5159 | Off by ~0.5 units on average |
+| **p-value** | **all < 10⁻⁵⁸** | 10/10 folds | Definitely not random |
 
 **What this means:** The model explains about 40% of the variance in parvalbumin expression using only morphology. That's not bad considering there are probably tons of other things that matter (epigenetics, development, activity, neuromodulators, etc.). But for just looking at shape? Pretty solid.
 
@@ -103,13 +103,13 @@ Here's what we got across all 10 folds:
 
 | Fold | R² | Pearson R | RMSE | p-value |
 |------|-----|-----------|------|---------|
-| **9** | **0.4447** | **0.6674** | **0.6424** | **5.98e-73** |
-| **10** | **0.4252** | **0.6528** | **0.6540** | **7.90e-69** |
-| **4** | **0.4048** | **0.6375** | **0.6694** | **7.49e-65** |
-| **7** | **0.4066** | **0.6393** | **0.6554** | **2.44e-65** |
-| **6** | **0.3922** | **0.6275** | **0.6680** | **2.60e-62** |
+| **10** | **0.4419** | **0.6654** | **0.6444** | **2.24e-72** |
+| **1** | **0.4205** | **0.6487** | **0.6570** | **7.68e-68** |
+| **7** | **0.4212** | **0.6493** | **0.6473** | **5.36e-68** |
+| **9** | **0.4101** | **0.6410** | **0.6621** | **1.20e-65** |
+| **4** | **0.3993** | **0.6322** | **0.6725** | **1.66e-63** |
 
-Fold 9 crushed it. Pretty interesting that it's so consistent though—the worst fold (Fold 2) still got R² = 0.34, so we didn't get weird unlucky splits.
+Fold 10 crushed it. Pretty interesting that it's so consistent though—the worst fold (Fold 2) still got R² = 0.3745, so we didn't get weird unlucky splits.
 
 ---
 
