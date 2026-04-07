@@ -146,35 +146,10 @@ Run inference:
 
 ## Future Directions
 
-Short-term:
   - Multi-gene prediction (GAD1, GFAP, and other disease-relevant markers)
   - Expanded brain region coverage beyond neocortex
   - Per-region stratification to resolve expression differences across cortical areas
-
-Long-term:
   - Region-by-gene expression mapping across the full brain to localize circuits implicated in specific disorders
-  - Human iPSC and patient tissue extension
-  - Single-cell RNA-seq cross-validation (MERFISH, 10x Genomics)
-
-## Reproducibility
-
-Random Seed: All random generation seeded with RANDOM_STATE = 42
-
-Dependencies:
-  torch==2.0.1
-  pandas==2.0.3
-  numpy==1.24.3
-  scikit-learn==1.3.0
-  scipy==1.11.1
-  matplotlib==3.7.1
-  seaborn==0.12.2
-  requests==2.31.0
-  beautifulsoup4==4.12.2
-  flask==2.3.3
-  flask-cors==4.0.0
-  gunicorn==21.2.0
-
-Hardware Effects: GPU (CUDA/MPS) may introduce minor floating-point differences. CPU execution is slower but fully reproducible.
 
 ## Acknowledgments
 
