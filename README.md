@@ -8,7 +8,7 @@ External Validation Tool: https://ngep-validator-frontend.pages.dev/
 
 NGEP is a computational framework for predicting cell-type-specific gene expression from neuronal 3D morphology. A feedforward neural network is trained on open-access data from NeuroMorpho.org and the Allen Brain Atlas to infer parvalbumin mRNA levels across regions of the mouse neocortex, using fourteen engineered morphological features derived from five base measurements.
 
-The immediate application is Pvalb expression prediction in neocortical neurons. The broader vision is more ambitious. A framework that predicts gene expression from morphology, applied across any brain region and any gene, could map where a pathological gene is most aberrantly expressed and use that map to localize the circuit most likely responsible for a given disorder. NGEP is the first step toward that goal.
+The immediate application is Pvalb expression prediction in neocortical neurons. The broader vision is more ambitious. A framework that predicts gene expression from morphology, applied across any brain region and any gene, could map where a pathological gene is most aberrantly expressed and use that map to localize the circuit most likely responsible for a given disorder. NGEP is the first step toward that goal. Realizing that vision will require retraining on human neuronal data, as human morphology differs meaningfully from mouse, and validating that the structure-to-expression relationships learned here transfer across species.
 
 ## Clinical Significance
 
@@ -20,7 +20,7 @@ Parvalbumin is expressed almost exclusively in fast-spiking GABAergic interneuro
 
 Pvalb dysfunction is implicated in autism, schizophrenia, epilepsy, Alzheimer's disease, fragile X syndrome, and ADHD.
 
-Measuring gene expression experimentally is expensive, slow, and often requires sacrificing tissue. A morphology-based prediction model changes that. Neuronal shape can be captured from standard microscopy, making it a far more accessible proxy for molecular state. At scale, this means expression profiling without genomic assays. Extended to disease-relevant genes across multiple brain regions, it becomes a computational route to identifying which region is contributing most to a patient's pathology. The prefrontal cortex in schizophrenia, the hippocampus in Alzheimer's, the basal ganglia in Parkinson's. Rather than measuring everything everywhere, a region-stratified expression model narrows the search to where the signal is strongest.
+Measuring gene expression experimentally is expensive, slow, and often requires sacrificing tissue. A morphology-based prediction model changes that. Neuronal shape can be captured from standard microscopy, making it a far more accessible proxy for molecular state. At scale, this means expression profiling without genomic assays. Extended to disease-relevant genes across multiple brain regions, it becomes a computational route to identifying which region is contributing most to a patient's pathology. The prefrontal cortex in schizophrenia, the hippocampus in Alzheimer's, the basal ganglia in Parkinson's. Rather than measuring everything everywhere, a region-stratified expression model narrows the search to where the signal is strongest. It should be noted that mapping expression to circuit-level causation in specific disorders remains an open scientific problem; NGEP narrows the search space but does not resolve questions of causality on its own.
 
 ## Data
 
@@ -86,7 +86,7 @@ StandardScaler normalization is fitted independently on each training fold to pr
 - **MAE**: Mean 0.5073 (Std 0.0128) | Range 0.4817 - 0.5251
 - **p-value**: All < 10^-51 across all 10 folds
 
-The model explains approximately 40% of variance in Pvalb expression from morphology alone. Remaining variance is attributable to gene regulatory networks, epigenetic state, developmental history, and local circuit context. An R² standard deviation of only 0.027 across all folds indicates robust generalization. The lowest-performing fold still achieved R² = 0.34, confirming the results are not an artifact of favorable data splits.
+The model explains approximately 40% of variance in Pvalb expression from morphology alone. Remaining variance is attributable to gene regulatory networks, epigenetic state, developmental history, and local circuit context. An R² standard deviation of only 0.027 across all folds indicates robust generalization. The lowest-performing fold still achieved R² = 0.34, confirming the results are not an artifact of favorable data splits. These results establish a strong proof-of-concept, though predictive accuracy would need to improve substantially before the model is suitable for direct clinical decision-making.
 
 ### Top 5 Performing Folds
 
@@ -150,6 +150,7 @@ Run inference:
   - Expanded brain region coverage beyond neocortex
   - Per-region stratification to resolve expression differences across cortical areas
   - Region-by-gene expression mapping across the full brain to localize circuits implicated in specific disorders
+  - Human neuronal data integration to bridge the gap between mouse models and clinical application
 
 ## Acknowledgments
 
